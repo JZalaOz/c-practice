@@ -11,4 +11,4 @@ add_executable(cstuff
         src/allocation/allocation.c
 )
 
-target_link_libraries(cstuff PRIVATE m)
+target_link_libraries(cstuff PRIVATE m) # Math
