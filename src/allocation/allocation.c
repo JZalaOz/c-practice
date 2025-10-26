@@ -1,6 +1,5 @@
 // NOLINTNEXTLINE
 #define _GNU_SOURCE
-
 #include "allocation.h"
 #include "allocation_internal.h"
 #include <sys/mman.h>
@@ -68,21 +67,14 @@ static const struct page_type_list* get_page_types() {
     return &value;
 }
 
-static const struct page_type_entry* get_page_type_nearest_to_size(size_t size) {
-    // TODO THIS
-    // 0 - 4kb
-    // 1 - 2mb
-    // 2 - 1gb
-    // 3 - 2gb
-    // size - 512kb
-
+// Finds the biggest page size with the least extra space
+static const struct page_type_entry* get_page_type_best_for_size(size_t size) {
     const struct page_type_entry* prev = &get_page_types()->array[0];
 
     for (int i = 1; i < get_page_types()->size; i++) {
         const struct page_type_entry* curr = &get_page_types()->array[i];
 
         if (size <= curr->byte_size) {
-            // maybe Check if closer to curr then prev
             break;
         }
 
@@ -106,6 +98,20 @@ static struct internal_allocation get_free_space_list_allocation() {
     }
 
     return value;
+}
+
+static bool is_valid_free_space_index(int index) {
+    return !(index < 0 || index * sizeof(struct free_space_entry) > get_free_space_list_allocation().size);
+}
+
+static struct free_space_entry* get_free_space_by_index(int index) {
+    if (!is_valid_free_space_index(index))
+        return NULL;
+    return get_free_space_list_allocation().address + (index * sizeof(struct free_space_entry));
+}
+
+static struct free_space_entry* get_new_free_space_entry() {
+
 }
 
 static struct allocated_pages_list get_allocated_pages() {
@@ -158,7 +164,7 @@ static struct free_space_entry* find_free_space_of_size(size_t size) {
 }
 
 static struct free_space_entry* get_free_space_with_new_allocated_page(size_t size) {
-    const struct page_type_entry* page_type = get_page_type_nearest_to_size(size + sizeof(struct user_allocation_meta));
+    const struct page_type_entry* page_type = get_page_type_best_for_size(size + sizeof(struct user_allocation_meta));
 
     // Find allocated page entry that is not in use, or increase the size of the allocation for entries
     int allocated_page_index = 0;
