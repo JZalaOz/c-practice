@@ -21,51 +21,35 @@ struct internal_allocation {
 
 // Page type size (including default/normal page size)
 struct page_type_entry {
-    bool is_normal_page;
     size_t byte_size;
     int flag;
+    bool is_normal_page;
 };
 
 // Sorted by lowest to highest byte_size
 struct page_type_list {
-    int size;
     struct page_type_entry array[MAX_PAGES];
+    int size;
 };
 
-// Each allocated page will have a list of free spaces, so it will be easy to put new allocations
-struct allocated_page; // Because it's defined in here before the struct is defined, and allocated_page uses this
-struct free_space_entry {
-    bool in_use;
-    void* address;
-    size_t size;
-    struct allocated_page* allocated_page;
-
-    struct free_space_entry* next;
-    struct free_space_entry* prev;
-};
-
-struct allocated_page {
-    bool in_use;
-    void* address;
+struct page_metadata {
     size_t size;
     const struct page_type_entry* page_type;
-
-    // The list will be sorted where head is the lowest size, and tail is the highest
-    int free_space_list_size;
-    struct free_space_entry* free_space_list_head;
-
-    struct allocated_page* next;
-    struct allocated_page* prev;
+    struct chunk_metadata* head_chunk;
+    struct chunk_metadata* tail_chunk;
 };
 
-struct allocated_pages_list {
-    struct allocated_page* head;
-    struct internal_allocation allocation;
-};
+struct chunk_metadata {
+    struct page_metadata* page;
+    size_t size;
 
-// This is allocated just before the user allocation
-struct user_allocation_meta {
-    int allocated_page_index;
-    size_t size; // does not include the size of this meta struct
-    void* address; // after this meta struct
+    // Per page
+    struct chunk_metadata* prev;
+    struct chunk_metadata* next;
+
+    // Across pages
+    struct chunk_metadata* prev_free;
+    struct chunk_metadata* next_free;
+
+    bool is_free;
 };
